@@ -3,7 +3,7 @@
 ## DON'T START THIS STORY UNTIL WE AGREE ON
 Jacob needs to fist fight Jesse on Monday (Oct 9, 2018)
 But seriously, we need to be on the same page about:
-1. (Jacob) What's wrong with named constraint? Can't we make it deterministic?
+1. (Jacob) What's wrong with named constraint? Can't we make it deterministic? [(Jesse) No.](why-not-named-constraints.md)
 1. (Jesse) No that's gonna make `pg_dump` on unnamed constraints wrong
 
 ## Context: Desired end state for index-backed constraints on partition tables
@@ -18,13 +18,13 @@ But seriously, we need to be on the same page about:
 
 
 ## Actual story
-Given our vision on eventually identically naming index-backed constraints with their indices, we need to disallow:
+Given our vision on eventually identically naming index-backed constraints with their indices, we need to disallow the following on partition tables:
 
-1. name colulmn constraints:
+1. named colulmn constraints:
    - `CREATE TABLE pt (a int, b int CONSTRAINT yolo UNIQUE) PARTITION BY range(b) (END (10));`
-1. table constraint at creation:
+1. named table constraint at table creation:
    - `CREATE TABLE pt (a int, b int, CONSTRAINT yolo UNIQUE(a,b)) DISTRIBUTED BY (a) PARTITION BY range(b) (END (10));`
-1. table cosntraint post-creation:
+1. adding named table cosntraint:
    - `ALTER TABLE pt ADD CONSTRAINT yolo UNIQUE (a,b);`
 
 
@@ -72,7 +72,7 @@ BEGIN
       con.contype <> 'c'
       AND
       con.conrelid IN (
-        SELECT 'pt'::regclass
+        SELECT t
         UNION ALL
         SELECT inhrelid
         FROM pg_inherits
@@ -98,14 +98,18 @@ DROP TYPE pt_1_prt_beta_a_b_key1;
 Depending on the database state before the `CREATE TABLE`, the index names are not predictable:
 
 ```
-    conrelid    | conname |        conindid
-----------------+---------+-------------------------
- pt             | pt_key  | pt_a_b_key1
- pt_1_prt_alpha | pt_key  | pt_1_prt_alpha_a_b_key1
- pt_1_prt_beta  | pt_key  | pt_1_prt_beta_a_b_key2
+    relation    | constraint |          index
+----------------+------------+-------------------------
+ pt             | pt_key     | pt_a_b_key1
+ pt_1_prt_alpha | pt_key     | pt_1_prt_alpha_a_b_key1
+ pt_1_prt_beta  | pt_key     | pt_1_prt_beta_a_b_key2
 (3 rows)
 
 ```
+
+## FAQ
+1. [Why are you against named (index-backed) constraints on a partition table?](why-not-named-constraints.md)
+
 
 ## History
 Spun out of an uber story <https://www.pivotaltracker.com/story/show/160911811>

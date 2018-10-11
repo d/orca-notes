@@ -2,11 +2,11 @@
 `ALTER TABLE ONLY ... ADD CONSTRAINT ...` should not recurse into partition children 
 
 ## Context
-**GIVEN** we disallow named index-backed (think `UNIQUE`) constraints on partition table DDL
+**GIVEN** we [disallow](disallow-named-constraint.md) named index-backed (think `UNIQUE`) constraints on partition table DDL
 
 **IN ORDER TO** provide precise control to `pg_dump` on a partition table created on Greenplum 6 with constraints
 
-we need to allow it in a limited form (temporarily relaxing the uniformity of `UNIQUE` constraints) during binary upgrade
+We need to allow it in a limited form (temporarily relaxing the uniformity of `UNIQUE` constraints)
 
 ## Example
 
@@ -23,6 +23,12 @@ we need to allow it in a limited form (temporarily relaxing the uniformity of `U
      PARTITION beta START (3)
      );
 
+   ```
+
+   Can put the database in a unpredictable state. One possible end state [^wacky_ddl] is:
+
+   ```sql
+
    SELECT conrelid::regclass, conname, conindid::regclass
    FROM pg_constraint
    WHERE
@@ -36,16 +42,11 @@ we need to allow it in a limited form (temporarily relaxing the uniformity of `U
        WHERE inhparent = 'pt'::regclass
    );
 
-   ```
-
-   Can put the database in a unpredictable state. One possible end state [^footnote_1] is:
-
-   ```
        conrelid    |          conname         |        conindid
    ----------------+--------------------------+-------------------------
     pt             | pt_a_b_key1              | pt_a_b_key1
-    pt_1_prt_alpha | pt_1_prt_alpha_a_b_key1  | pt_1_prt_alpha_a_b_key1
-    pt_1_prt_beta  | pt_1_prt_beta_a_b_key2   | pt_1_prt_beta_a_b_key2
+    pt_1_prt_alpha | pt_1_prt_alpha_a_b_key2  | pt_1_prt_alpha_a_b_key2
+    pt_1_prt_beta  | pt_1_prt_beta_a_b_key3   | pt_1_prt_beta_a_b_key3
    (3 rows)
    ```
 
@@ -55,25 +56,47 @@ we need to allow it in a limited form (temporarily relaxing the uniformity of `U
    CREATE TABLE pt (a integer, b integer) DISTRIBUTED BY (a)
    PARTITION BY RANGE(b) (PARTITION alpha  END (3), PARTITION beta START (3));
 
-   ALTER TABLE ONLY pt
+   ALTER TABLE pt
        ADD CONSTRAINT pt_a_b_key1 UNIQUE (a, b);
 
    ```
-   
-   **FIXME** elaborate why this DDL is bad.
 
-## Footnote
-1. [^footnote_1] pre-condition:
+1. Ideally, you want to dump the above catalog state as:
 
    ```sql
+   CREATE TABLE pt (a integer, b integer) DISTRIBUTED BY (a)
+   PARTITION BY RANGE(b) (PARTITION alpha  END (3), PARTITION beta START (3));
 
-   -- given that we squat some names
-   CREATE TYPE pt_a_b_key AS (yolo int);
-   CREATE TYPE pt_1_prt_alpha_a_b_key AS (yolo int);
-   CREATE TYPE pt_1_prt_beta_a_b_key AS (yolo int);
-   CREATE TYPE pt_1_prt_beta_a_b_key1 AS (yolo int);
+   ALTER TABLE ONLY pt_1_prt_alpha ADD CONSTRAINT pt_1_prt_alpha_a_b_key1;
+   ALTER TABLE ONLY pt_1_prt_beta ADD CONSTRAINT pt_1_prt_beta_a_b_key2;
+   ALTER TABLE ONLY pt ADD CONSTRAINT pt_a_b_key1;
    ```
 
 
-## FIXME
-JZ's self-doubt: What should happen to regular `pg_dump`? Won't a regular restore become a problem too?
+[^wacky_ddl]: How to get the database to the wacky state:
+
+    ```sql
+    -- squat some table names
+    CREATE TYPE pt_a_b_key AS (yolo int);
+    CREATE TYPE pt_1_prt_alpha_a_b_key AS (yolo int);
+    CREATE TYPE pt_1_prt_alpha_a_b_key1 AS (yolo int);
+    CREATE TYPE pt_1_prt_beta_a_b_key AS (yolo int);
+    CREATE TYPE pt_1_prt_beta_a_b_key1 AS (yolo int);
+    CREATE TYPE pt_1_prt_beta_a_b_key2 AS (yolo int);
+
+    -- create table using unnamed constraint syntax
+    CREATE TABLE pt (
+        a integer,
+        b integer,
+        UNIQUE (a, b)
+    ) DISTRIBUTED BY (a) PARTITION BY RANGE(b)
+      (PARTITION alpha  END (3), PARTITION beta START (3));
+
+    -- erase my tracks
+    DROP TYPE pt_a_b_key;
+    DROP TYPE pt_1_prt_alpha_a_b_key;
+    DROP TYPE pt_1_prt_alpha_a_b_key1;
+    DROP TYPE pt_1_prt_beta_a_b_key;
+    DROP TYPE pt_1_prt_beta_a_b_key1;
+    DROP TYPE pt_1_prt_beta_a_b_key2;
+    ```
