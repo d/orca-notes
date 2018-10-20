@@ -4,5 +4,6 @@
    1. `DROP TABLE` drops every table in the hierarchy
 
 ## Links
+- [Forget about partitioned tables, index-backed constraints are not dump-able](index-backed-constraints.md)
 - [`ALTER TABLE ONLY pt ADD CONSTRAINT` proposal](alter-table-only-add-constraint.md)
 - ["disallow named constraint" proposal](disallow-named-constraint.md)
