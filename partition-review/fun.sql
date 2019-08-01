@@ -27,6 +27,7 @@ SELECT classid::regclass,
        deptype
 FROM pg_depend dep
 WHERE deptype IN ('P', 'S', 'I', 'a')
+  -- filter out the clutter of check constraints
   AND NOT EXISTS(SELECT 1
                  FROM pg_constraint
                  WHERE objid = oid
