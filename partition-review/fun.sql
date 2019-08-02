@@ -36,26 +36,19 @@ WHERE deptype IN ('P', 'S', 'I', 'a')
   AND objid > 16000
 GROUP BY objid, classid, objsubid, deptype;
 
-CREATE INDEX segundo_abcd ON foo_1_prt_segundo (a, b, c, d);
-CREATE INDEX foo_abcd ON foo (a, b, c, d);
-DROP INDEX foo_abcd;
-
--- SELECT classid, describe(classid, objid, 0) FROM dependents_of('foo');
--- SELECT * FROM constraints_of('foo');
-SELECT *
-FROM yolo;
-SELECT *
-FROM indices_of('foo');
-
 ALTER TABLE foo
-    ALTER PARTITION segundo ADD PARTITION echo START (204) END (206);
+    ADD CONSTRAINT foo_pk PRIMARY KEY (a, b, c, d);
+
 SELECT *
 FROM indices_of('foo');
 
-CREATE TABLE bar
+CREATE TABLE jazz
 (
-    LIKE foo
+    e int,
+    f int
 );
-ALTER TABLE foo
-    ALTER PARTITION segundo EXCHANGE PARTITION echo WITH TABLE bar;
-DROP TABLE bar;
+EXPLAIN
+    SELECT e, f
+    FROM jazz
+             LEFT JOIN foo
+                       ON e = a AND 0 = b AND 100 = c AND f = d;
