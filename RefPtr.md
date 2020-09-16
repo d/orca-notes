@@ -23,7 +23,7 @@ A value refers to the "content" or meaning that occupies the address of an objec
 
 ### Example of a function taking ownership of one of its parameters:
 
-```c++
+```C++
 S* OwnsParam(T* t1) {
 
   t->Release();
@@ -32,7 +32,7 @@ S* OwnsParam(T* t1) {
 
 A caller looks like
 
-```c++
+```C++
 T* t = ...;
 stuff();
 t->AddRef();
@@ -41,7 +41,7 @@ S* s = OwnsParam(t);
 
 ### Example of a function returning an owner (i.e. the caller receives ownership)
 
-```c++
+```C++
 T* RetOwner(int) {
   T t = ...;
 
@@ -54,7 +54,7 @@ We have 157 such `return` statements.
 
 Or more likely it looks like this:
 
-```c++
+```C++
 T* RetOwner(int) {
   T t = new T(...);
 
@@ -67,7 +67,7 @@ We have 452 such return statements (only counting C++ files, not headers)
 
 A caller should look like this:
 
-```c++
+```C++
 T* t = RetOwner(42);
 do_stuff();
 t->Release();
@@ -77,7 +77,7 @@ For example `CColRef::Pdrgpul` returns ownership.
 Similarly `CFunctionalDependency::PcrsKeys` returns ownership.
 
 ### Example of an object taking ownership:
-```c++
+```C++
 struct S {
   T* t_;
 
@@ -92,7 +92,7 @@ struct S {
 
 A caller that constructs an object of type `S` should look like this
 
-```c++
+```C++
 t->AddRef();
 S* s = new S(t);
 ```
@@ -100,14 +100,14 @@ S* s = new S(t);
 ## Parking Lot Questions:
 
 #### Question 1
-```c++
+```C++
 S s = OwnsParam(RetOwner(42));
 ```
 
 #### Question
 There is an asymmetry between:
 
-```c++
+```C++
 {
 T* t = new T(...);
 
@@ -117,7 +117,7 @@ t->Release(); // t is destroyed
 
 And
 
-```c++
+```C++
 {
 RefPtr<T> t = RefPtr<T>{new T(...)}; // double count!
 }
@@ -129,7 +129,7 @@ RefPtr<T> t = RefPtr<T>{new T(...)}; // double count!
 
 Annotations:
 
-```c++
+```C++
 template <T> // requires std::is_pointer_v<T>
 using owner<T*> = T;
 
