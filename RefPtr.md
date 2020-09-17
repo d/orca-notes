@@ -1,8 +1,8 @@
 # Smart Pointers for `CRefCount<T>`
 
-## Terminology:
+# Terminology:
 
-### Pointer
+## Pointer
 A _Pointer_ (capital P) denotes a piece of code
 (a block scope, a function, an object)
 that references another object through a pointer (or reference, "pointers" with a lowercase "p" hereafter),
@@ -11,17 +11,17 @@ but is never responsible for managing the lifetime of the pointee
 
 Pointers assume that the pointers they hold don't dangle (the pointees always outlive them).
 
-### Owners
+## Owners
 An _Owner_ is a piece of code (a block scope, a function, an object) that is responsible for managing the lifetime of an object they reference through a pointer.
 
 "Managing a pointee's lifetime" best manifests itself through through the owner calling `Release()`
 
-### Values
+## Values
 A value refers to the "content" or meaning that occupies the address of an object. 42 is a value. The string `"hello world"` is a value.
 
-## Examples
+# Examples
 
-### Example of a function taking ownership of one of its parameters:
+## Example of a function taking ownership of one of its parameters:
 
 ```C++
 S* OwnsParam(T* t1) {
@@ -39,7 +39,7 @@ t->AddRef();
 S* s = OwnsParam(t);
 ```
 
-### Example of a function returning an owner (i.e. the caller receives ownership)
+## Example of a function returning an owner (i.e. the caller receives ownership)
 
 ```C++
 T* RetOwner(int) {
@@ -76,7 +76,7 @@ t->Release();
 For example `CColRef::Pdrgpul` returns ownership.
 Similarly `CFunctionalDependency::PcrsKeys` returns ownership.
 
-### Example of an object taking ownership:
+## Example of an object taking ownership:
 ```C++
 struct S {
   T* t_;
@@ -97,14 +97,14 @@ t->AddRef();
 S* s = new S(t);
 ```
 
-## Parking Lot Questions:
+# Parking Lot Questions:
 
-#### Question 1
+### Question 1
 ```C++
 S s = OwnsParam(RetOwner(42));
 ```
 
-#### Question
+### Question
 There is an asymmetry between:
 
 ```C++
@@ -123,9 +123,17 @@ RefPtr<T> t = RefPtr<T>{new T(...)}; // double count!
 }
 ```
 
-## Migration strategy
+# Migration strategy
+The following five parts are about migrating away from manual reference counting:
 
-### Annotating, no functional change (NFC)
+1. Annotating intent, no functional change (NFC)
+   1. base cases
+   1. propagating annotation
+1. Human supervision: see what's not annotated, come up with new rules, iterate, or manual intervention.
+1. Validating assumptions at call sites
+1. Final conversion
+
+# Annotating (NFC)
 
 Annotations:
 
@@ -137,10 +145,10 @@ template <T> // requires std::is_pointer_v<T>
 using pointer<T*> = T;
 ```
 
-#### Base cases
+# Base cases
 These base cases only depends on the original AST, and can be done in one pass (OK maybe fixing up function declaration needs a second pass, but mostly).
 
-##### base.varOwn
+## base.varOwn
 A local variable initialized to `new ...` is an owner. i.e. when we match:
 
 ```C++
@@ -153,10 +161,10 @@ We annotate:
 owner<T*> t = new ...;
 ```
 
-##### base.varPtr
+## base.varPtr
 A local variable that is returned right after an `AddRef()` is a pointer.
 
-##### base.paramOwn
+## base.paramOwn
 A function parameter that has `->Release` called on it is an owner, i.e. when we match:
 
 ```C++
@@ -171,7 +179,7 @@ We annotate (both definition and its declaration in header):
 void OwnsParam(owner<T*> t, int ...)
 ```
 
-##### base.retPtr
+## base.retPtr
 A function parameter that never has `Release` called on it is a pointer, i.e. we annotate it as
 
 ```C++
@@ -179,7 +187,7 @@ void PointsToParam(pointer<T*> t) {
 }
 ```
 
-##### base.memOwn
+## base.memOwn
 A non-static member variable of a struct (or class) that is released in its destructor is an owner. i.e. when we match:
 
 ```C++
@@ -200,10 +208,10 @@ struct S {
 };
 ```
 
-#### Owner propagation
+# Owner propagation
 Once we write out the annotation done in the base cases, we can further propagate the annotation. We don't know how far we can get with one iteration, but the hope is that we converge pretty quickly. IDK, we'll need to try and find out.
 
-##### prop.varOwn
+## prop.varOwn
 A local variable initialized with a function returning an owner is an owner. i.e. when we match:
 
 ```C++
@@ -219,7 +227,7 @@ owner<T*> f();
 owner<T*> t = f();
 ```
 
-##### prop.retOwn
+## prop.retOwn
 A function returning a local owner variable, or tail-calls a function returning an owner returns an owner. i.e. when we match
 
 ```C++
@@ -240,26 +248,26 @@ owner<T*> g();
 
 I hesitated to generalize the above rule as "a function returning an owner expression, well, returns an owner" because I wasn't sure about parameters. Fortunately ORCA never returns a parameter that has been `Release()`d.
 
-#### Call site cross-examination
+# Call site cross-examination
 Once the propagation converges to a stationary point, we should validate some of our assumptions.
 
-##### val.ptrToOwn
+## val.ptrToOwn
 A pointer (and an owner) variable (or param) should `AddRef()` before being passed as an argument to an owner parameter in a function call.
 
-##### val.ownMove
+## val.ownMove
 A local owner variable being passed as an argument without an `AddRef()` is a move.
 
 Question: how to identify the corresponding `AddRef()` of an owner argument construction?
 This might be easy to do when an owner `t` is copied to an argument only once.
 Idea: identify the possible "move" and annotate that. Once we annotate all moves, we might be able to say the number of `AddRef()` should be equal the number of argument passing.
 
-##### val.ownLocalRet
+## val.ownLocalRet
 A local owner variable should not `AddRef()` before being returned as an owner.
 
-##### val.memRet
+## val.memRet
 A member owner variable should `AddRef()` before being returned as an owner.
 
-#### Conversion
+# Conversion
 Our vision would be to remove all the annotation once we have sufficient information, and the end result looks like:
 
 1. A human needs to inspect each unannotated pointer, and either manually annotate it, or come up with new base rules or new propagation rules
