@@ -244,9 +244,20 @@ I hesitated to generalize the above rule as "a function returning an owner expre
 Once the propagation converges to a stationary point, we should validate some of our assumptions.
 
 ##### val.ptrToOwn
-An owner variable (or param) should `AddRef()` before being passed as an argument to an owner parameter in a function call.
+A pointer (and an owner) variable (or param) should `AddRef()` before being passed as an argument to an owner parameter in a function call.
 
-#####
+##### val.ownMove
+A local owner variable being passed as an argument without an `AddRef()` is a move.
+
+Question: how to identify the corresponding `AddRef()` of an owner argument construction?
+This might be easy to do when an owner `t` is copied to an argument only once.
+Idea: identify the possible "move" and annotate that. Once we annotate all moves, we might be able to say the number of `AddRef()` should be equal the number of argument passing.
+
+##### val.ownLocalRet
+A local owner variable should not `AddRef()` before being returned as an owner.
+
+##### val.memRet
+A member owner variable should `AddRef()` before being returned as an owner.
 
 #### Conversion
 Our vision would be to remove all the annotation once we have sufficient information, and the end result looks like:
@@ -254,8 +265,15 @@ Our vision would be to remove all the annotation once we have sufficient informa
 1. A human needs to inspect each unannotated pointer, and either manually annotate it, or come up with new base rules or new propagation rules
 
 1. each owner variable `owner<T*> t` is replaced with a (hypothetically named) smart pointer `RefPtr<T> t`
-   1. All references of `t->Release()` should be removed
-   1. All references of `t->AddRef()` should be removed
+   1. All references of `t->Release()` should be removed: this happens automatically when `t`
+      1. goes out of function / block scope, or
+      1. when the owning object destructs.
+   1. All references of `t->AddRef()` should be removed: this happens automatically when we
+      1. pass (copy) `t` into a function argument, or
+      1. return (copy) `t` from a function returning `RefPtr<T>`
+      1. Observation: currently we have a lot of `getter` functions that effectively _should_ return an owner, but they instead push the `AddRef` to their callers. Validate this assumption, and we might be able to clean it up before / after conversion.
+   1. Open questions: come up with rules that identify `std::move(t)` when we pass `t` to another owner.
+      Obviously this has to be the last time we copy it (_use_ it actually: use-after-move is UB)
 
 1. each non-owning variable `pointer<T*> t` is replaced with a raw pointer
    1. Assumption: `t` doesn't do `Release()` for managing lifetime
