@@ -139,10 +139,10 @@ Annotations:
 
 ```C++
 template <T> // requires std::is_pointer_v<T>
-using owner<T*> = T;
+using owner<T> = T;
 
 template <T> // requires std::is_pointer_v<T>
-using pointer<T*> = T;
+using pointer<T> = T;
 ```
 
 # Base cases
@@ -288,3 +288,84 @@ Our vision would be to remove all the annotation once we have sufficient informa
    1. Assumption: All calls to `t->AddRef()` is passing a pointer to an owner argument at function call
 
 
+# Frequently Given Answers (FAQ)
+
+## Weak Pointers?
+We theoretically cannot have a weak pointer in the current code base, but!
+Shreedhar raises the question of the "three-body problem": do we have code that does this:
+1. `A` has a owning (raw) pointer to object `B`
+1. `B` has a owning (raw) pointer to object `A`
+1. But we always use a third entity to "nuke them both out of orbit".
+So this just sounds like extremely brittle and bad code that violates all sorts of principles...
+
+## Implementation of `RefPtr`
+Here's a sketch:
+```C++
+template <class T>
+struct RefPtr {
+  RefPtr() = default;
+  // implicit conversion from T*
+  RefPtr(T *p): p_(p) { if (p_) p_->AddRef(); }
+  RefPtr(RefPtr &&other) : p_(other.p_) { other.p_ = nullptr; }
+  ~RefPtr() { if (p_) p_->Release(); }
+  RefPtr(const RefPtr &other): RefPtr(other.p_) {}
+
+  friend void swap(RefPtr& other) { std::swap(p_, sink.p_); }
+  // copy and move assignment
+  RefPtr &operator=(RefPtr sink) { swap(sink); return *this; }
+
+  T *get() const { return p_; }
+  explicit operator bool() const { return p_; }
+  T *operator->() const { return p_; }
+
+private:
+  T* p_ = nullptr;
+};
+
+// helper analogous to std::make_unique
+template <class T, class Args...>
+RefPtr<T> make_ref(Args&&... args) { return {new T(args...);} }
+```
+
+## Circular dependency?
+Q: the above sketch seems to suggest that you need to provide a complete type `T` to `RefPtr<T>`.
+Can we handle the situation when `T` is forward declared,
+i.e. the declaration of `T::AddRef` isn't available to the template instantiation?
+
+A: Yes. I'm not 100% sure we have to handle that yet, but yes we can definitely deal with it.
+The trick will be to introduce one more abstraction around `AddRef` and `Release`.
+
+TODO: fill in the sketch when we actually have this situation.
+
+## Why do functions need to return a RefPtr at all if a caller can just decide to take ownership?
+Q: Shouldn't all functions just return raw pointers, because callers can do the following?
+
+```C++
+T *Func1();
+
+void Func2() {
+   RefPtr<T> t_ = Func1();
+}
+```
+
+No.
+
+Because it's often unsafe to allow the caller to discard the return value ("drop it on the floor"), shortest example:
+
+```C++
+T* Func1() {
+  auto t = new T(arg1, arg2);
+  return t;
+}
+```
+
+Here the caller is forced to take ownership, otherwise it leaks. Compare to the safe version:
+
+```C++
+RefPtr<T> Func1() {
+  auto t = gpos::make_ref<T>(arg1, arg2);
+  return t;
+}
+```
+
+Here the function transfers ownership to the caller. And if the temporary `RefPtr<T>` gets dropped on the floor, it destroys the object correctly, no leak.
