@@ -1,19 +1,6 @@
-### plan time pruning
+# Postgres 12 Partitioning and ORCA
 
-* *I think* uses `constraint_exclusiong=partition` **fact check this**
-
-### runtime pruning
-
-`get_partition_for_tuple`
-
-#####
-
-`PartitionPruneState`: `ExecCreatePartitionPruneState`
-`PartitionKey`
-`PartitionDesc`
-`PlannedStmt::appendRelations`
-
-### goals
+# Parking Lot
 
 Questions:
 
