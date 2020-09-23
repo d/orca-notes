@@ -214,7 +214,7 @@ We have 72 such local variables in ORCA `.cpp` files.
 Questionable: A local variable that is returned right after an `AddRef()` is a pointer.
 I don't remember what inspired this rule, and it takes a little more than clang-query to find those.
 
-## base.paramOwn
+## base.parmOwn
 A function parameter that has `Release` member function called on it is an owner, i.e. when we match:
 
 ```C++
@@ -233,13 +233,32 @@ Hint: parameters that are unconditionally released are taking unnecessary owners
 We can optimize them away in a second pass.
 We have about 12 such superfluous owners. Maybe a pre-factoring to eliminate them?
 
-## base.retPtr
+## base.parmPtr
 A function parameter that never has `Release` called on it is a pointer, i.e. we annotate it as
 
 ```C++
 void PointsToParam(pointer<T*> t) {
 }
 ```
+
+## base.retPtr
+This one is a little ORCA-specific: a function returning a parameter returns a pointer. i.e. when we match:
+
+```cpp
+T *foo(T *parm1, U parm2) {
+  return parm1;
+}
+```
+
+we annotate
+
+```cpp
+pointer<T*> foo(T *parm1, U parm2) {
+  return parm1;
+}
+```
+
+We have 242 occurrences of functions returning a parameter in ORCA `.cpp` files (and a lot more in headers).
 
 ## base.memOwnSafeRelease
 A non-static member variable of a struct (or class) that is released in its destructor is an owner. i.e. when we match:
