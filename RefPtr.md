@@ -39,6 +39,11 @@ t->AddRef();
 S* s = OwnsParam(t);
 ```
 
+We have 40 such parameters.
+Some of those look unnecessary
+-- as in, raw pointers without `AddRef()` suffice --
+but we'll honor the intent during the migration, and only optimize them after the switch.
+
 ## Example of a function returning an owner (i.e. the caller receives ownership)
 
 ```C++
@@ -56,7 +61,7 @@ Or more likely it looks like this:
 
 ```C++
 T* RetOwner(int) {
-  T t = new T(...);
+  T *t = new T(...);
 
   do_stuff();
 
@@ -89,6 +94,18 @@ struct S {
   }
 }
 ```
+We have 486 occurrences of `Release()` called on a member variable from destructors in ORCA.
+Often enough, ORCA also does a variant
+
+```patch
+   ~S() {
+-    if (t)
+-      t_->Release();
++      SafeRelease(t_);
+   }
+```
+
+We have 324 such occurrences of `SafeRelease` called on a member variable from destructors in ORCA `.cpp` files.
 
 A caller that constructs an object of type `S` should look like this
 
@@ -148,7 +165,7 @@ using pointer<T> = T;
 # Base cases
 These base cases only depends on the original AST, and can be done in one pass (OK maybe fixing up function declaration needs a second pass, but mostly).
 
-## base.varOwn
+## base.varOwnNew
 A local variable initialized to `new ...` is an owner. i.e. when we match:
 
 ```C++
@@ -161,11 +178,44 @@ We annotate:
 owner<T*> t = new ...;
 ```
 
+We have 2288 such local variables.
+
+## base.varOwnRelease
+A local variable that has `Release` member function called on it is an owner. i.e. when we match:
+
+```cpp
+T *t = ...;
+
+if (cond) {
+  t->Release();
+  foo();
+} else { ... }
+```
+
+We annotate:
+
+```cpp
+owner<T*> t = ...;
+
+if (cond) {
+  t->Release();
+  foo();
+} else {}
+```
+
+We have 1541 occurrences of such local variables in ORCA `.cpp` files.
+
+## base.varOwnSafeRelese
+A local variable that has the static function `SafeRelease` called on it is an owner.
+
+We have 72 such local variables in ORCA `.cpp` files.
+
 ## base.varPtr
-A local variable that is returned right after an `AddRef()` is a pointer.
+Questionable: A local variable that is returned right after an `AddRef()` is a pointer.
+I don't remember what inspired this rule, and it takes a little more than clang-query to find those.
 
 ## base.paramOwn
-A function parameter that has `->Release` called on it is an owner, i.e. when we match:
+A function parameter that has `Release` member function called on it is an owner, i.e. when we match:
 
 ```C++
 void OwnsParam(T* t, int ...) {
@@ -179,6 +229,10 @@ We annotate (both definition and its declaration in header):
 void OwnsParam(owner<T*> t, int ...)
 ```
 
+Hint: parameters that are unconditionally released are taking unnecessary ownership.
+We can optimize them away in a second pass.
+We have about 12 such superfluous owners. Maybe a pre-factoring to eliminate them?
+
 ## base.retPtr
 A function parameter that never has `Release` called on it is a pointer, i.e. we annotate it as
 
@@ -187,7 +241,7 @@ void PointsToParam(pointer<T*> t) {
 }
 ```
 
-## base.memOwn
+## base.memOwnSafeRelease
 A non-static member variable of a struct (or class) that is released in its destructor is an owner. i.e. when we match:
 
 ```C++
@@ -208,8 +262,13 @@ struct S {
 };
 ```
 
+We have 324 (`SafeRelease`d, or 486 for `Release`) such member variables in ORCA `.cpp` files.
+
 # Owner propagation
-Once we write out the annotation done in the base cases, we can further propagate the annotation. We don't know how far we can get with one iteration, but the hope is that we converge pretty quickly. IDK, we'll need to try and find out.
+Once we write out the annotation done in the base cases, we can further propagate the annotation.
+We don't know how far we can get with one iteration (because the derivation is iterative / recursive),
+but the hope is that we converge to a stationary point pretty quickly.
+IDK, we'll need to try and find out.
 
 ## prop.varOwn
 A local variable initialized with a function returning an owner is an owner. i.e. when we match:
