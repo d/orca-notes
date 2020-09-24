@@ -2,6 +2,40 @@
 
 # Feature Parity
 ## Static Pruning
+
+DynamicTableScan should contain explicit information about static pruning
+
+```XML
+<dxl:DynamicTableScan>
+<dxl:Properties />
+<dxl:ProjList />
+<dxl:Filter />
+<dxl:PruneInfos>
+  <dxl:PartitionedRelPruneInfo>
+  </dxl:PartitionedRelPruneInfo>
+</dxl:PruneInfos>
+<dxl:TableDescriptor Mdid="0.319609.1.0" TableName="listfoo" />
+</dxl:DynamicTableScan>
+```
+
+The hypothetical `dxlPartitionedRelPruneInfo` (final name TBD) would be translated into PartitionedRelPruneInfo nodes in Postgres. The translator can then execute them to get the surviving subset and record it into `DynamicSeqScan::active_parts` (final name TBD).
+
+```C
+typedef struct DynamicSeqScan
+{
+	/* Fields shared with a normal SeqScan. Must be first! */
+	SeqScan		seqscan;
+
+	/*
+	 * List of leaf partition OIDs to scan.
+	 */
+	List	   *partOids;
+
+	/* indexes of all partitions that survive static pruning */
+	BitmapSet  *active_parts;
+} DynamicSeqScan;
+```
+
 ## Runtime Pruning
 ## Handling more than one level of partitioning
 ## Partial Scans with Indexes and Foreign Tables
@@ -111,7 +145,7 @@ WHERE pk > $1;
             }
          )
          :cmpfns (o 351) # btint4cmp(int,int)
-         :nullkeys (b)
+         :nullkeys (b) # only relevant to hash partitioning
          }
       )
       :exec_pruning_steps <>
