@@ -208,6 +208,9 @@ EXPLAIN:
          Filter: (pk <> ALL (ARRAY[$1, $2, $3]))
 ```
 
+<details>
+<summary>Details inside of `Append`</summary>
+
 ```
 :part_prune_info
    {PARTITIONPRUNEINFO
@@ -281,6 +284,8 @@ EXPLAIN:
    :other_subplans (b)
    }
 ```
+
+</details>
 
 # Notes & Feedback
 
