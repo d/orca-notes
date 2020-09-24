@@ -82,7 +82,9 @@ FROM (
 WHERE pk > $1;
 ```
 
-Annotated plan snipet:
+<details>
+<summary>Annotated plan snipet</summary>
+
 ```
 :part_prune_info
    {PARTITIONPRUNEINFO
@@ -189,6 +191,8 @@ Annotated plan snipet:
    }
 }
 ```
+
+</details>
 
 # Postgres 12 init pruning over list partitioned table:
 
