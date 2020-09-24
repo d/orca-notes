@@ -1,5 +1,106 @@
 # Postgres 12 Partitioning and ORCA
 
+# Setup
+
+```sql
+
+CREATE TABLE grandma (a int, b int, pk int) PARTITION BY RANGE(pk);
+CREATE TABLE mom PARTITION OF grandma FOR VALUES FROM (0) TO (10);
+CREATE TABLE aunt PARTITION OF grandma FOR VALUES FROM (-10) TO (0);
+
+CREATE TABLE abuela (a int, b int, pk int) PARTITION BY LIST(pk);
+CREATE TABLE mama PARTITION OF abuela FOR VALUES IN (40, 42);
+CREATE TABLE tia PARTITION OF abuela FOR VALUES IN (-3, -2, -1);
+```
+
+# Postgres 12 init pruning over list partitioned table:
+
+```sql
+SELECT * FROM abuela WHERE pk NOT IN (40, 42, 44);
+```
+
+EXPLAIN:
+```
+ Append
+   Subplans Removed: 1
+   ->  Seq Scan on tia
+         Filter: (pk <> ALL (ARRAY[$1, $2, $3]))
+```
+
+```
+:part_prune_info
+   {PARTITIONPRUNEINFO
+   :prune_infos ((
+      {PARTITIONEDRELPRUNEINFO
+      :rtindex 1
+      :present_parts (b 0 1)
+      :nparts 2
+      :subplan_map  0 1
+      :subpart_map  -1 -1
+      :relid_map  67390 67387
+      :initial_pruning_steps (
+         {PARTITIONPRUNESTEPOP
+         :step.step_id 0
+         :opstrategy 0
+         :exprs (
+            {PARAM
+            :paramkind 0
+            :paramid 1
+            :paramtype 23
+            :paramtypmod -1
+            :paramcollid 0
+            :location 70
+            }
+         )
+         :cmpfns (o 351)
+         :nullkeys (b)
+         }
+         {PARTITIONPRUNESTEPOP
+         :step.step_id 1
+         :opstrategy 0
+         :exprs (
+            {PARAM
+            :paramkind 0
+            :paramid 2
+            :paramtype 23
+            :paramtypmod -1
+            :paramcollid 0
+            :location 74
+            }
+         )
+         :cmpfns (o 351)
+         :nullkeys (b)
+         }
+         {PARTITIONPRUNESTEPOP
+         :step.step_id 2
+         :opstrategy 0
+         :exprs (
+            {PARAM
+            :paramkind 0
+            :paramid 3
+            :paramtype 23
+            :paramtypmod -1
+            :paramcollid 0
+            :location 78
+            }
+         )
+         :cmpfns (o 351)
+         :nullkeys (b)
+         }
+         {PARTITIONPRUNESTEPCOMBINE
+         :step.step_id 3
+         :combineOp 1
+         :source_stepids (i 0 1 2)
+         }
+      )
+      :exec_pruning_steps <>
+      :execparamids (b)
+      }
+   ))
+   :other_subplans (b)
+   }
+```
+
 # Parking Lot
 
 Questions:
