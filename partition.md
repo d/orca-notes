@@ -1,9 +1,27 @@
 # Postgres 12 Partitioning and ORCA
 
+# Feature Parity
+## Static Pruning
+## Runtime Pruning
+## Handling more than one level of partitioning
+## Partial Scans with Indexes and Foreign Tables
+
+# More Possibilities
+Things that ORCA doesn't do, but we've wanted to do for a long time.
+
+## Combined static and runtime pruning
+
+Motivating example (taken from [gporca issue 565][gporca-issue-565])
+
+[gporca-issue-565]: https://github.com/greenplum-db/gporca/issues/565
+
+## "Intersecting" multiple partition selectors
+## Proper runtime pruning under Nest Loop
+## Hetero
+
 # Setup
 
 ```sql
-
 CREATE TABLE grandma (a int, b int, pk int) PARTITION BY RANGE(pk);
 CREATE TABLE mom PARTITION OF grandma FOR VALUES FROM (0) TO (10);
 CREATE TABLE aunt PARTITION OF grandma FOR VALUES FROM (-10) TO (0);
@@ -100,6 +118,8 @@ EXPLAIN:
    :other_subplans (b)
    }
 ```
+
+# Notes & Feedback
 
 # Parking Lot
 
