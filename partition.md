@@ -37,6 +37,23 @@ typedef struct DynamicSeqScan
 ```
 
 ## Runtime Pruning
+
+The partition selector node has been reshaped into this:
+
+```C
+typedef struct PartitionSelector
+{
+	Plan		plan;
+
+	struct PartitionPruneInfo *part_prune_info;
+	int32		paramid;	/* result is stored here */
+
+} PartitionSelector;
+```
+
+`PartitionSelector::part_prune_info` is a `PartitionPruneInfo` node,
+when evaluated, it will return a `Bitmapset` representing the subset of partitions that survives pruning.
+
 ## Handling more than one level of partitioning
 ## Partial Scans with Indexes and Foreign Tables
 
