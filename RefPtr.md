@@ -23,7 +23,7 @@ A value refers to the "content" or meaning that occupies the address of an objec
 
 ## Example of a function taking ownership of one of its parameters:
 
-```C++
+```cpp
 S* OwnsParam(T* t1) {
 
   t->Release();
@@ -32,7 +32,7 @@ S* OwnsParam(T* t1) {
 
 A caller looks like
 
-```C++
+```cpp
 T* t = ...;
 stuff();
 t->AddRef();
@@ -46,7 +46,7 @@ but we'll honor the intent during the migration, and only optimize them after th
 
 ## Example of a function returning an owner (i.e. the caller receives ownership)
 
-```C++
+```cpp
 T* RetOwner(int) {
   T t = ...;
 
@@ -59,7 +59,7 @@ We have 157 such `return` statements.
 
 Or more likely it looks like this:
 
-```C++
+```cpp
 T* RetOwner(int) {
   T *t = new T(...);
 
@@ -72,7 +72,7 @@ We have 452 such return statements (only counting C++ files, not headers)
 
 A caller should look like this:
 
-```C++
+```cpp
 T* t = RetOwner(42);
 do_stuff();
 t->Release();
@@ -82,7 +82,7 @@ For example `CColRef::Pdrgpul` returns ownership.
 Similarly `CFunctionalDependency::PcrsKeys` returns ownership.
 
 ## Example of an object taking ownership:
-```C++
+```cpp
 struct S {
   T* t_;
 
@@ -109,7 +109,7 @@ We have 324 such occurrences of `SafeRelease` called on a member variable from d
 
 A caller that constructs an object of type `S` should look like this
 
-```C++
+```cpp
 t->AddRef();
 S* s = new S(t);
 ```
@@ -117,14 +117,14 @@ S* s = new S(t);
 # Parking Lot Questions:
 
 ### Question 1
-```C++
+```cpp
 S s = OwnsParam(RetOwner(42));
 ```
 
 ### Question
 There is an asymmetry between:
 
-```C++
+```cpp
 {
 T* t = new T(...);
 
@@ -134,7 +134,7 @@ t->Release(); // t is destroyed
 
 And
 
-```C++
+```cpp
 {
 RefPtr<T> t = RefPtr<T>{new T(...)}; // double count!
 }
@@ -154,7 +154,7 @@ The following five parts are about migrating away from manual reference counting
 
 Annotations:
 
-```C++
+```cpp
 template <T> // requires std::is_pointer_v<T>
 using owner<T> = T;
 
@@ -168,13 +168,13 @@ These base cases only depends on the original AST, and can be done in one pass (
 ## base.varOwnNew
 A local variable initialized to `new ...` is an owner. i.e. when we match:
 
-```C++
+```cpp
 T* t = new ...;
 ```
 
 We annotate:
 
-```C++
+```cpp
 owner<T*> t = new ...;
 ```
 
@@ -217,7 +217,7 @@ I don't remember what inspired this rule, and it takes a little more than clang-
 ## base.parmOwn
 A function parameter that has `Release` member function called on it is an owner, i.e. when we match:
 
-```C++
+```cpp
 void OwnsParam(T* t, int ...) {
    t->Release();
 }
@@ -225,7 +225,7 @@ void OwnsParam(T* t, int ...) {
 
 We annotate (both definition and its declaration in header):
 
-```C++
+```cpp
 void OwnsParam(owner<T*> t, int ...)
 ```
 
@@ -236,7 +236,7 @@ We have about 12 such superfluous owners. Maybe a pre-factoring to eliminate the
 ## base.parmPtr
 A function parameter that never has `Release` called on it is a pointer, i.e. we annotate it as
 
-```C++
+```cpp
 void PointsToParam(pointer<T*> t) {
 }
 ```
@@ -263,7 +263,7 @@ We have 242 occurrences of functions returning a parameter in ORCA `.cpp` files 
 ## base.memOwnSafeRelease
 A non-static member variable of a struct (or class) that is released in its destructor is an owner. i.e. when we match:
 
-```C++
+```cpp
 struct S {
   T* t_;
 
@@ -273,7 +273,7 @@ struct S {
 
 We annotate:
 
-```C++
+```cpp
 struct S {
   owner<T*> t_;
 
@@ -292,14 +292,14 @@ IDK, we'll need to try and find out.
 ## prop.varOwn
 A local variable initialized with a function returning an owner is an owner. i.e. when we match:
 
-```C++
+```cpp
 owner<T*> f();
 
 T* t = f();
 ```
 we annotate:
 
-```C++
+```cpp
 owner<T*> f();
 
 owner<T*> t = f();
@@ -308,7 +308,7 @@ owner<T*> t = f();
 ## prop.retOwn
 A function returning a local owner variable, or tail-calls a function returning an owner returns an owner. i.e. when we match
 
-```C++
+```cpp
 owner<T*> f();
 
 T* g() {
@@ -378,7 +378,7 @@ So this just sounds like extremely brittle and bad code that violates all sorts 
 
 ## Implementation of `RefPtr`
 Here's a sketch:
-```C++
+```cpp
 template <class T>
 struct RefPtr {
   RefPtr() = default;
@@ -418,7 +418,7 @@ TODO: fill in the sketch when we actually have this situation.
 ## Why do functions need to return a RefPtr at all if a caller can just decide to take ownership?
 Q: Shouldn't all functions just return raw pointers, because callers can do the following?
 
-```C++
+```cpp
 T *Func1();
 
 void Func2() {
@@ -430,7 +430,7 @@ No.
 
 Because it's often unsafe to allow the caller to discard the return value ("drop it on the floor"), shortest example:
 
-```C++
+```cpp
 T* Func1() {
   auto t = new T(arg1, arg2);
   return t;
@@ -439,7 +439,7 @@ T* Func1() {
 
 Here the caller is forced to take ownership, otherwise it leaks. Compare to the safe version:
 
-```C++
+```cpp
 RefPtr<T> Func1() {
   auto t = gpos::make_ref<T>(arg1, arg2);
   return t;
