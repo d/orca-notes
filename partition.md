@@ -55,6 +55,9 @@ typedef struct PartitionSelector
 when evaluated, it will return a `Bitmapset` representing the subset of partitions that survives pruning.
 
 ## Handling more than one level of partitioning
+
+## Dynamic Index Scan
+
 ## Partial Scans with Indexes and Foreign Tables
 
 # More Possibilities
