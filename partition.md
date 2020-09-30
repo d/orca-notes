@@ -23,7 +23,7 @@
     -> Hash
         -> Partition Selector**
             -> Scan on foo
-    
+
 * Append now just uses the pruned oids from it's Partition Selector
 ** Partition Selector uses both bar.pk1 & bar.pk2 to determine the pruned list.
 ```
