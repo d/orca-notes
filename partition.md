@@ -58,6 +58,7 @@
 > ***TODO: Confirm claims of high memory usage if we drop this!***
 
 # Feature Parity
+
 ## Static Pruning
 
 DynamicTableScan should contain explicit information about static pruning
@@ -108,6 +109,13 @@ Expr2DXL
 
 1. Use the predicates in partition selector to prune some partitions
 2. Use the remaining parts and expand the uber scan to an DXL Append with one DXLTableScan for each remaining partition
+
+
+## Partial Scans
+What do we do to about partial scans?
+
+* It seems easy to execute, we know exactly what a partial scan plan _should_ look
+* There seems to be insurmountable difficult in planning optimally for this.
 
 ## Runtime Pruning
 
