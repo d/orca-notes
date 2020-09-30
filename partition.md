@@ -95,6 +95,20 @@ typedef struct DynamicSeqScan
 } DynamicSeqScan;
 ```
 
+## What Shreedhar Says About Static Pruning
+
+ORCA plan (Expr):
+
+```
+PartitionSelector
+  UberScan
+```
+
+Expr2DXL
+
+1. Use the predicates in partition selector to prune some partitions
+2. Use the remaining parts and expand the uber scan to an DXL Append with one DXLTableScan for each remaining partition
+
 ## Runtime Pruning
 
 The partition selector node has been reshaped into this:
