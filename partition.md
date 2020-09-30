@@ -12,6 +12,8 @@ DynamicTableScan should contain explicit information about static pruning
 <dxl:Filter />
 <dxl:PruneInfos>
   <dxl:PartitionedRelPruneInfo>
+    <dxl:InitPruningSteps>
+    </dxl:InitPruningSteps>
   </dxl:PartitionedRelPruneInfo>
 </dxl:PruneInfos>
 <dxl:TableDescriptor Mdid="0.319609.1.0" TableName="listfoo" />
@@ -51,8 +53,32 @@ typedef struct PartitionSelector
 } PartitionSelector;
 ```
 
+Currently, Partition Selector DXL looks like this
+```xml
+<dxl:PartitionSelector RelationMdid="0.322247.1.1" PartitionLevels="1" ScanId="1">
+  <dxl:Properties />
+  <dxl:ProjList/>
+  <dxl:PartEqFilters />
+  <dxl:PartFilters />
+  <dxl:ResidualFilter />
+  <dxl:PropagationExpression />
+</dxl:PartitionSelector>
+```
+
+I suggest we change it to mirror the `PartitionSelector` node above:
+
+```xml
+<dxl:PartitionSelector RelationMdid="0.322247.1.1" PartitionLevels="1" ScanId="1">
+  <dxl:Properties />
+  <dxl:ProjList/>
+  <dxl:PartitionPruneInfo>
+  </dxl:PartitionPruneInfo>
+</dxl:PartitionSelector>
+```
+
 `PartitionSelector::part_prune_info` is a `PartitionPruneInfo` node,
-when evaluated, it will return a `Bitmapset` representing the subset of partitions that survives pruning.
+when evaluated (c.f. `ExecCreatePartitionPruneState` and `ExecFindMatchingSubPlans`),
+it will return a `Bitmapset` representing the subset of partitions that survives pruning.
 
 ## Handling more than one level of partitioning
 
@@ -342,6 +368,7 @@ EXPLAIN:
 </details>
 
 # Notes & Feedback
+1. From Shreedhar: Justify many-to-many between Append and Partition Selectors
 
 # Parking Lot
 
