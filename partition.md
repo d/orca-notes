@@ -1,5 +1,21 @@
 # Postgres 12 Partitioning and ORCA
 
+# Actions / Open Questions to research
+
+1. Plan A: we are gonna go full gung-ho on Append + PS, ditch DTS, DIS, DBIS.
+
+1. Confirm claims of high memory usage if we drop DynamicTableScan
+   1. If we can't drop DTS: regroup and restrategize
+
+1. See if the new catalog has adequate information to model PartConstraints
+   1. It has more: refine our model? Drop the extra on the floor?
+   1. It has less: regroup and discuss what to do
+
+1. Plans for indexes on partitioned tables
+   1. Contention: partial scans (indexes).
+   1. No contention: we definitely need to support foreign partitions
+
+
 # Insights
 1. GPDB7's Append node has functionality to do selection on its children Scan nodes, so as to only execute a subset based on certain conditions. This can thus support Dynamic Partition Elimination (DPE) for cases that use PARAMS, eg: Nested loop joins, external params, subplans (currently not supported at all).
 ```
