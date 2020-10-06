@@ -196,6 +196,121 @@ Motivating example (taken from [gporca issue 565][gporca-issue-565])
 
 [gporca-issue-565]: https://github.com/greenplum-db/gporca/issues/565
 
+```sql
+CREATE TEMP TABLE foo (a int, b smallint) PARTITION BY RANGE(b);
+CREATE TEMP TABLE foo_0 PARTITION OF foo FOR VALUES FROM (0) TO (10);
+CREATE TEMP TABLE foo_10 PARTITION OF foo FOR VALUES FROM (10) TO (20);
+CREATE TEMP TABLE foo_20 PARTITION OF foo FOR VALUES FROM (20) TO (30);
+CREATE TEMP TABLE foo_30 PARTITION OF foo FOR VALUES FROM (30) TO (40);
+CREATE TEMP TABLE foo_40 PARTITION OF foo FOR VALUES FROM (40) TO (MAXVALUE);
+
+SELECT * FROM foo WHERE b > 20 AND b < $1;
+
+  oid   |  oid   
+--------+--------
+ 468792 | foo
+ 468795 | foo_0
+ 468798 | foo_10
+ 468801 | foo_20
+ 468804 | foo_30
+ 468807 | foo_40
+```
+
+<details><summary>plan snippet</summary>
+```
+:first_partial_plan 3 
+:part_prune_info 
+   {PARTITIONPRUNEINFO 
+   :prune_infos ((
+      {PARTITIONEDRELPRUNEINFO 
+      :rtindex 1 
+      :present_parts (b 2 3 4)
+      :nparts 5 
+      :subplan_map  -1 -1 0 1 2 
+      :subpart_map  -1 -1 -1 -1 -1 
+      :relid_map  0 0 468801 468804 468807 
+      :initial_pruning_steps (
+         {PARTITIONPRUNESTEPOP 
+         :step.step_id 0 
+         :opstrategy 1 
+         :exprs (
+            {PARAM 
+            :paramkind 0 
+            :paramid 1 
+            :paramtype 23 
+            :paramtypmod -1 
+            :paramcollid 0 
+            :location 60
+            }
+         )
+         :cmpfns (o 2190)
+         :nullkeys (b)
+         }
+         {PARTITIONPRUNESTEPOP 
+         :step.step_id 1 
+         :opstrategy 5 
+         :exprs (
+            {CONST 
+            :consttype 23 
+            :consttypmod -1 
+            :constcollid 0 
+            :constlen 4 
+            :constbyval true 
+            :constisnull false 
+            :location 49 
+            :constvalue 4 [ 20 0 0 0 0 0 0 0 ]
+            }
+         )
+         :cmpfns (o 2190)
+         :nullkeys (b)
+         }
+         {PARTITIONPRUNESTEPCOMBINE 
+         :step.step_id 2 
+         :combineOp 1 
+         :source_stepids (i 0 1)
+         }
+      )
+      :exec_pruning_steps <> 
+      :execparamids (b)
+      }
+   ))
+   :other_subplans (b)
+   }
+```
+</details>
+
+
+## Vision for foreign scan
+
+Alternative one: dynamic pruning for the non-foreign tables:
+```
+Nest Loop
+  Join Cond: bar.c = foo.pk
+  Redistribute
+    Seq Scan bar
+  Append
+    Seq Scan foo_1
+    Seq Scan foo_2
+    Redistribute
+      Append
+        Foreign Scan ext_foo_3
+        Foreign Scan ext_foo_4
+```
+
+
+Alternative 2: static pruning only
+```
+Nest Loop
+  Join Cond: bar.c = foo.pk
+  Seq Scan bar
+  Redistribute
+  Append
+    Seq Scan foo_1
+    Seq Scan foo_2
+    Foreign Scan ext_foo_3
+    Foreign Scan ext_foo_4
+```
+
 ## "Intersecting" multiple partition selectors
 ## Proper runtime pruning under Nest Loop
 ## Hetero
