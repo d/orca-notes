@@ -6,7 +6,7 @@
 
 1. Confirm claims of high memory usage if we drop DynamicTableScan
    1. If we can't drop DTS: regroup and restrategize
-   1. link to dd
+   1. [Dispelling claims of high memory usage of `SeqScan`s](#Claims-of-High-Memory-Usage-of-SeqScans)
 
 1. See if the new catalog has adequate information to model PartConstraints
    1. It has more: refine our model? Drop the extra on the floor?
@@ -468,7 +468,7 @@ EXPLAIN:
 
 # Due Diligence
 
-## Claims of High Memory Usage of SeqScan's
+## Claims of High Memory Usage of `SeqScan`s
 
 1. Finding: With 16384 partitions, planner only onsumed 142 MB, and executing the sequential scans (16384 of them) costs about 165 MB of RAM (10K each).
 
