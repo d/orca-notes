@@ -7,8 +7,11 @@
 1. Confirm claims of high memory usage if we drop DynamicTableScan
    1. If we can't drop DTS: regroup and restrategize
    1. [Dispelling claims of high memory usage of `SeqScan`s](#Claims-of-High-Memory-Usage-of-SeqScans)
-   1. A self join on a partitioned table with 16384 partitions takes more than 6 minutes in planner. Real question: if we can magically generate this plan would the executor chill?
-   1. Action item: confirm the slowness cause by upstream code or our divergence.
+   1. A `SELECT 1 FROM foo` takes 23 seconds in Greenplum 7 planner
+   1. A self join on a partitioned table with 16384 partitions takes more than 6 minutes in Greenplum 7 planner. Real question: if we can magically generate this plan would the executor chill?
+   1. Confirmed the slowness (327s) of self-join in Postgres 12.
+   1. `SELECT 1 from foo` <1 s in GPDB 6 and over 23s in GPDB 7
+   1. `SELECT 1 from foo JOIN foo USING (a)` is 8min+ (OOM) in GPDB 6 and 8min+ (didn't complete) GPDB 7
 
 1. See if the new catalog has adequate information to model PartConstraints
    1. It has more: refine our model? Drop the extra on the floor?
