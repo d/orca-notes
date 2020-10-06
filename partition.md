@@ -6,6 +6,14 @@
 
 1. Confirm claims of high memory usage if we drop DynamicTableScan
    1. If we can't drop DTS: regroup and restrategize
+   1. Finding: With 16384 partitions, planner only onsumed 142 MB, and executing the sequential scans (16384 of them) costs about 165 MB of RAM (10K each).
+
+      |   |SELECT|EXPLAIN ANALYZE|
+      |---|---|---|
+      |QD|142 MB|438 MB|
+      |QE|172 MB|178 MB|
+
+   1. Finding: the `statement_mem` calculation is significantly overestimates the memory usage (about 10X).
 
 1. See if the new catalog has adequate information to model PartConstraints
    1. It has more: refine our model? Drop the extra on the floor?
