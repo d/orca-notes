@@ -588,9 +588,28 @@ EXPLAIN:
 
 # Due Diligence
 
+## 16384 Partitions Set-Up
+
+```sql
+-- 16384 partitions
+CREATE SCHEMA foo_16384;
+CREATE TABLE foo_16384.foo(a int, b smallint, c int)
+PARTITION BY RANGE (b);
+
+SET client_min_messages TO warning;
+SELECT format('CREATE TABLE %s partition OF %s FOR VALUES FROM (%s) TO (%s)', "partition", root, i, i+1)
+FROM (
+    SELECT format('foo_16384.foo_%s', i) AS partition, 'foo_16384.foo' AS root, i
+    FROM generate_series(0, 16384 - 1) i
+) t; \gexec
+RESET client_min_messages;
+
+INSERT INTO foo_16384.foo (b) SELECT generate_series(0, 16384 - 1);
+```
+
 ## Claims of High Memory Usage of `SeqScan`s
 
-1. Finding: With 16384 partitions, planner only onsumed 142 MB, and executing the sequential scans (16384 of them) costs about 165 MB of RAM (10K each).
+1. Finding: With 16384 partitions, QD only onsumes 142 MB, and executing the sequential scans (16384 of them) costs about 165 MB of RAM (10K each).
 
    |   |SELECT|EXPLAIN ANALYZE|
    |---|---|---|
@@ -598,6 +617,17 @@ EXPLAIN:
    |QE|172 MB|178 MB|
 
 1. Finding: the `statement_mem` calculation is significantly overestimates the memory usage (about 10X).
+
+## Claims of planner slowness:
+
+Query \ Product | Greenplum 7 planner | Postgres 12 | Postgres 13
+---|---|---|---
+`SELECT 1 FROM foo` | 14860.484 ms (00:14.860) | 380.452 ms | 417.143 ms
+`CREATE TEMP TABLE foo1 AS SELECT a FROM foo` | 83667.647 ms (01:23.668) | 383.817 ms | 434.602 ms
+`EXPLAIN SELECT 1 FROM foo` | 18542.430 ms (00:18.542) | 1903.545 ms (00:01.904) | 323.145 ms
+`SELECT 1 FROM foo JOIN foo bar USING (a)` | 865703.271 ms (14:25.703) | 422854.283 ms (07:02.854) | 366815.695 ms (06:06.816)
+`CREATE TEMP TABLE foo2 AS SELECT a FROM foo JOIN foo bar USING (a)` | 582529.987 ms (09:42.530) | 292123.332 ms (04:52.123) | 267593.284 ms (04:27.593)
+`EXPLAIN SELECT 1 FROM foo JOIN foo bar USING (a)` | 627897.107 ms (10:27.897) | 337578.763 ms (05:37.579) | 315750.860 ms (05:15.751)
 
 # Parking Lot
 
