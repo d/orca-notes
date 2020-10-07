@@ -22,57 +22,57 @@
 
 # Insights
 1. GPDB7's Append node has functionality to do selection on its children Scan nodes, so as to only execute a subset based on certain conditions. This can thus support Dynamic Partition Elimination (DPE) for cases that use PARAMS, eg: Nested loop joins, external params, subplans (currently not supported at all).
-```
--> Nested Loop Join
-    join cond: foo.a = bar.pk
-    -> Scan on foo
-    -> Append*
-        -> Scan on bar_p1
-        -> Scan on bar_p2
-
-* Append contains pruning steps using an outer ref to foo.a (as a PARAM)
-```
+   ```
+   -> Nested Loop Join
+       join cond: foo.a = bar.pk
+       -> Scan on foo
+       -> Append*
+           -> Scan on bar_p1
+           -> Scan on bar_p2
+   
+   * Append contains pruning steps using an outer ref to foo.a (as a PARAM)
+   ```
 2. To perform DPE with Hash joins, we will need to use another operator: Partition Selector. Supporting DPE with Hash joins is the only reason we need to have the Partition Selector operator.
-```
--> Hash Join
-    hash cond: foo.a = bar.pk1
-    join cond: foo.b < bar.pk2
-    -> Append*
-        -> Scan on bar_p1
-        -> Scan on bar_p2
-    -> Hash
-        -> Partition Selector**
-            -> Scan on foo
-
-* Append now just uses the pruned oids from it's Partition Selector
-** Partition Selector uses both bar.pk1 & bar.pk2 to determine the pruned list.
-```
+   ```
+   -> Hash Join
+       hash cond: foo.a = bar.pk1
+       join cond: foo.b < bar.pk2
+       -> Append*
+           -> Scan on bar_p1
+           -> Scan on bar_p2
+       -> Hash
+           -> Partition Selector**
+               -> Scan on foo
+   
+   * Append now just uses the pruned oids from it's Partition Selector
+   ** Partition Selector uses both bar.pk1 & bar.pk2 to determine the pruned list.
+   ```
 3. The Partition Selector <-> Append relationship now needs to be only many-1 (and *not* many-many). That is, each Partition Selector needs to affect only one Append node. However, an Append node can benefit from multiple Partition Selectors
-```
--> Hash Join
-	-> Hash Join
-        -> Append
-            -> Scan bar_p1
-            -> Scan bar_p2
-		-> Hash
-            -> Partition Selector
-                -> Scan on foo
-	-> Hash
-        -> Partition Selector
-            -> Scan on jazz
-
--> Nested Loop Join
-    -> Scan on jazz
-	-> Hash Join
-        -> Append*
-            -> Scan bar_p1
-            -> Scan bar_p2
-		-> Hash
-            -> Partition Selector
-                -> Scan on foo
-
-* Append benefits from both NLJ PARAMs as well as Partition Selector's pruned oids.
-```
+   ```
+   -> Hash Join
+   	-> Hash Join
+           -> Append
+               -> Scan bar_p1
+               -> Scan bar_p2
+   		-> Hash
+               -> Partition Selector
+                   -> Scan on foo
+   	-> Hash
+           -> Partition Selector
+               -> Scan on jazz
+   
+   -> Nested Loop Join
+       -> Scan on jazz
+   	-> Hash Join
+           -> Append*
+               -> Scan bar_p1
+               -> Scan bar_p2
+   		-> Hash
+               -> Partition Selector
+                   -> Scan on foo
+   
+   * Append benefits from both NLJ PARAMs as well as Partition Selector's pruned oids.
+   ```
 4. We no longer need Dynamic XXX Scan, since all of its functionality is capture by the new Append operator.
 
 > ***TODO: Confirm claims of high memory usage if we drop this!***
