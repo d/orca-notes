@@ -1,21 +1,37 @@
 # Postgres 12 Partitioning and ORCA
 
-# Actions / Open Questions to research
+# Plan A (a.k.a the only plan)
+> Gung-ho on Append + PS, ditch DTS, DIS, DBIS.
 
-1. Plan A: we are gonna go full gung-ho on Append + PS, ditch DTS, DIS, DBIS.
+## Implementation Plan
 
-1. Confirm claims of high memory usage if we drop DynamicTableScan
+1. Translating DTS -> a number of SeqScan. This is should be pretty easy, and we will ignore any partition pruning. `SELECT 1 FROM foo;`
+1. Static pruning done in ORCA (done on top of Ext Scan PR). 
+    - Idea is to look for a contradiction between Select predicates & partitioning constraints (not partconstraints!) of each leaf partition.
+    - If this needs to be done in ORCA, we would need to translate all the partition constraints for each leaf table in a partitioned table (is that very expensive?)
+    - Temporary solution: Implement static pruning using PartitionedRelPruneInfo::initial_pruning_steps using Consts. This is executed _once_ per node, during ExecInitNode().
+    - Although, this may not be that bad, except the cost of all the work & memory of extra operators. Of ourse, it also bloats up the plan size.
+    - Can this be done as a transform?
+1. Rewrite Logical/Physical DynamicTableScan (call it MultiTableScan whatever): Add/remove the following members:
+    1. [A] oids: The oids of relations that this nodes will expand into. So, static pruning will just remove members from this list.
+    2. [A] contains_foreign_scans: Either the DTS starts of managing both, and the is split in an xform; OR we split it early on in the translator.
+    3. [R] partial_scan: no longer needed - yay! 5. Removing partial scan code, part constraints
+1. Rework part index map, part filter map and the way in which we do partition property management.
+
+## Open Questions
+
+- [x] Confirm claims of high memory usage if we drop DynamicTableScan
    1. If we can't drop DTS: regroup and restrategize
    1. [Dispelling claims of high memory usage of `SeqScan`s](#Claims-of-High-Memory-Usage-of-SeqScans)
    1. [Investigate claims of planner slowness](#Claims-of-Planner-Slowness). TL;DR: upstream planner is fast in simple scan type queries, but it spends a lot of time planning just a join between two partitioned tables (with 16384 partitions). Greenplum 7 planner seems to be oddly inefficient even with the simple scan type queries.
    1. A self join on a partitioned table with 16384 partitions takes more than 6 minutes in Greenplum 7 planner. Real question: if we can magically generate this plan would the executor chill?
    1. `SELECT 1 from foo JOIN foo USING (a)` is 8min+ (OOM) in GPDB 6 and 8min+ (didn't complete) GPDB 7
 
-1. See if the new catalog has adequate information to model PartConstraints
+- [ ] See if the new catalog has adequate information to model PartConstraints
    1. It has more: refine our model? Drop the extra on the floor?
    1. It has less: regroup and discuss what to do
 
-1. Plans for indexes on partitioned tables
+- [ ] Plans for indexes on partitioned tables
    1. Contention: partial scans (indexes).
    1. No contention: we definitely need to support foreign partitions
 
