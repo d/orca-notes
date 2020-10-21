@@ -231,6 +231,7 @@ SELECT * FROM foo WHERE b > 20 AND b < $1;
 ```
 
 <details><summary>plan snippet</summary>
+
 ```
 :first_partial_plan 3 
 :part_prune_info 
