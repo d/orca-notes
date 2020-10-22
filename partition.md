@@ -1,5 +1,47 @@
 # Postgres 12 Partitioning and ORCA
 
+# Background: Partitioning
+Complete reference available in [PostgreSQL 12 Declarative Partitioning documentation][ddl-partitioning].
+
+[ddl-partitioning]: https://www.postgresql.org/docs/12/ddl-partitioning.html#DDL-PARTITIONING-DECLARATIVE
+
+The following forms of partitioning are supported
+
+type | expr? | multi-key? | opclass
+---|---|---|---
+Range partitioning | Yes | Yes | btree
+List partitioning | Yes | No | btree (surprise)
+Hash partitioning | Yes | Yes | hash
+
+## Partitioned Table
+
+```sql
+CREATE TABLE measurement (
+    city_id         int not null,
+    logdate         date not null,
+    peaktemp        int,
+    unitsales       int
+) PARTITION BY RANGE (logdate);
+```
+
+## Partitions and Sub-Partitioning
+
+```sql
+CREATE TABLE measurement_y2006m02 PARTITION OF measurement
+    FOR VALUES FROM ('2006-02-01') TO ('2006-03-01');
+```
+
+```sql
+CREATE TABLE measurement_y2006m02 PARTITION OF measurement
+    FOR VALUES FROM ('2006-02-01') TO ('2006-03-01')
+    PARTITION BY RANGE (peaktemp);
+```
+
+is partition\partitioned? | no | yes
+---|---|---
+no | standalone table | "root"
+yes | leaf | sub partition
+
 # Insights
 
 ## Append
