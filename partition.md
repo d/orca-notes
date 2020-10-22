@@ -113,6 +113,29 @@ The Partition Selector <-> Append relationship now needs to be only many-1 (and 
 
 We no longer need Dynamic XXX Scan, since all of its functionality is capture by the new Append operator.
 
+# Short-Term Goal Post
+
+One level partitioning: Planning for a partitioned table, none of whose partitions are partitioned.
+
+# Unknown
+
+## Static Pruning
+
+Refer to next section
+
+## Runtime Pruning
+
+Precisely how (and when) is ORCA gonna generate an Expression-like thing that can be easily translated into a Postgres `PartitionPruneInfo` object?
+
+* Proposal 1: `= 1`, `AND`, `< bar.c`
+* Proposal 2: more mirroring of the `PartitionPruneInfo` to avoid "flattening the expression tree into array"
+
+What are the trade-offs? Which one is less awkward? Decisions here also have an impact on static pruning.
+
+## Foreign scans
+
+How is this gonna look in ORCA?
+
 # Feature Parity
 
 ## Static Pruning
@@ -710,6 +733,12 @@ Query \ Product | Greenplum 7 planner | Postgres 12 | Postgres 13
 - [ ] See if the new catalog has adequate information to model PartConstraints
    1. It has more: refine our model? Drop the extra on the floor?
    1. It has less: regroup and discuss what to do
+   1. Random addendum: can a partition be distributed differently from its ancestors?
+      1. Can the distribution key(s) be different?
+      1. Can the distribution column(s) be the same, however a partition uses different opclasses than its parent
+      1. Can the `numsegments` be different?
+
+- [ ] "Hello world" of PartitionPropagationSpec. A "Require-Derive" cycle.
 
 - [ ] Plans for indexes on partitioned tables
    1. Contention: partial scans (indexes).
