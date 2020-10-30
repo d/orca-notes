@@ -1,5 +1,24 @@
 # Postgres 12 Partitioning and ORCA
 
+# Possible story structure.
+
+1. End to end for static partitioning
+	- Delete most of the old partition selection logic in ORCA
+	- Implement basic static pruning in ORCA
+	- Implement translation from static filter expression to `part_prune_info` steps (Easier because it requires fewer operators)
+2. End to end for dynamic partition for NLJ
+	- Recognize dynamic alternative for NLJ joins. 
+	- Questions:
+		- How to make sure it's an alternative? As in, should we even considering no doing DPE for NLJ even when it is possible? 
+		- What if the PS is no very selective or expensive?
+		- How do we cost such plans?
+	- Is the PARAM handling implemented fully in ORCA yet?
+	- What happens when the PARAM ends up under a Motion/Materialize? If we do not enforce a PS (like in GPDB6), there will be no (easy) way to ensure that Motions are placed underneath the PS.
+3. End to end for DPE for HJ
+	- Implement simplified Partition Propagation logic. (Worst case scenario: resurrect the old code)
+	- Ensure we can do *nested* and *multiple* DPEs
+4. End of end for DPE with static, NLJ & HJ combined. (This shouldn't really take more work, just putting it here to make sure it is checked)
+
 # Background: Partitioning
 Complete reference available in [PostgreSQL 12 Declarative Partitioning documentation][ddl-partitioning].
 
@@ -112,6 +131,12 @@ The Partition Selector <-> Append relationship now needs to be only many-1 (and 
 ## Au Revoir Dynamc FooScan
 
 We no longer need Dynamic XXX Scan, since all of its functionality is capture by the new Append operator.
+
+## More Insights
+
+1. Static pruning doesn't need enforcement, it should always happen
+2. Nested Loop pruning (the one that `Append` does by itself) doesn't need enforcement, it should happen whenever possible (exceptions: motions, material, and shit)
+3. Partition Selection as an enforced property is reserved only for runtime pruning utilizing Hash Join.
 
 # Short-Term Goal Post
 
