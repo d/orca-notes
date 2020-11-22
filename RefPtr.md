@@ -78,7 +78,8 @@ t->Release();
 For example `CColRef::Pdrgpul` returns ownership.
 Similarly `CFunctionalDependency::PcrsKeys` returns ownership.
 
-## Example of an object taking ownership:
+## Example of an object owning a field:
+
 ```cpp
 struct S {
   T* t_;
@@ -91,6 +92,7 @@ struct S {
   }
 }
 ```
+
 We have 486 occurrences of `Release()` called on a member variable from destructors in ORCA.
 Often enough, ORCA also does a variant
 
@@ -110,6 +112,16 @@ A caller that constructs an object of type `S` should look like this
 t->AddRef();
 S* s = new S(t);
 ```
+
+## Example of an object owning through a container
+
+```cpp
+struct S {
+  gpos::CDynamicPtrArray<T, gpos::CleanupRelease> *many_t_;
+};
+```
+
+Here an `S` owns a dynamic pointer array of `T`, but `many_t_` owns each element stored in it.
 
 # Parking Lot Questions:
 
