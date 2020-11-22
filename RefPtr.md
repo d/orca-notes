@@ -26,7 +26,7 @@ A value refers to the "content" or meaning that occupies the address of an objec
 ```cpp
 S* OwnsParam(T* t1) {
 
-  t->Release();
+  t1->Release();
 }
 ```
 
@@ -63,7 +63,7 @@ Or more likely it looks like this:
 T* RetOwner(int) {
   T *t = new T(...);
 
-  do_stuff();
+  do_stuff(t);
 
   return t;
 }
@@ -74,7 +74,7 @@ A caller should look like this:
 
 ```cpp
 T* t = RetOwner(42);
-do_stuff();
+do_stuff(t);
 t->Release();
 ```
 
@@ -89,7 +89,7 @@ struct S {
   S(T* t) : t_(t) {}
 
   ~S() {
-    if (t)
+    if (t_)
       t_->Release();
   }
 }
@@ -105,7 +105,7 @@ Often enough, ORCA also does a variant
    }
 ```
 
-We have 324 such occurrences of `SafeRelease` called on a member variable from destructors in ORCA `.cpp` files.
+We have 324 such occurrences of `SafeRelease` called on a field from destructors in ORCA `.cpp` files.
 
 A caller that constructs an object of type `S` should look like this
 
@@ -261,7 +261,7 @@ pointer<T*> foo(T *parm1, U parm2) {
 We have 242 occurrences of functions returning a parameter in ORCA `.cpp` files (and a lot more in headers).
 
 ## base.memOwnSafeRelease
-A non-static member variable of a struct (or class) that is released in its destructor is an owner. i.e. when we match:
+A non-static field (data member) of a struct (or class) that is released in its destructor is an owner. i.e. when we match:
 
 ```cpp
 struct S {
@@ -400,9 +400,9 @@ private:
   T* p_ = nullptr;
 };
 
-// helper analogous to std::make_unique
-template <class T, class Args...>
-RefPtr<T> make_ref(Args&&... args) { return {new T(args...);} }
+// helper analogous to std::allocate_shared
+template <class T, class MP, class Args...>
+RefPtr<T> allocate_ref(MP mp, Args&&... args) { return {GPOS_NEW(mp) T(args...);} }
 ```
 
 ## Circular dependency?
@@ -441,7 +441,7 @@ Here the caller is forced to take ownership, otherwise it leaks. Compare to the 
 
 ```cpp
 RefPtr<T> Func1() {
-  auto t = gpos::make_ref<T>(arg1, arg2);
+  auto t = gpos::allocate_ref<T>(arg1, arg2);
   return t;
 }
 ```
