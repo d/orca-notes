@@ -391,17 +391,18 @@ So this just sounds like extremely brittle and bad code that violates all sorts 
 
 ## Implementation of `RefPtr`
 Here's a sketch:
+
 ```cpp
 template <class T>
 struct RefPtr {
   RefPtr() = default;
-  // implicit conversion from T*
+  ~RefPtr() { if (p_) p_->Release(); }
+
   RefPtr(T *p): p_(p) { if (p_) p_->AddRef(); }
   RefPtr(RefPtr &&other) : p_(other.p_) { other.p_ = nullptr; }
-  ~RefPtr() { if (p_) p_->Release(); }
   RefPtr(const RefPtr &other): RefPtr(other.p_) {}
 
-  friend void swap(RefPtr& other) { std::swap(p_, sink.p_); }
+  void swap(RefPtr& other) { std::swap(p_, other.p_); }
   // copy and move assignment
   RefPtr &operator=(RefPtr sink) { swap(sink); return *this; }
 
@@ -417,6 +418,18 @@ private:
 template <class T, class MP, class Args...>
 RefPtr<T> allocate_ref(MP mp, Args&&... args) { return {GPOS_NEW(mp) T(args...);} }
 ```
+
+Note in the sketch above:
+1. `RefPtr<T>` is implicitly convertible from `T*`.
+1. `RefPtr<T>` is not implicitly convertible to a `T*`.
+
+Both choices are negotiable, given that we can work on the tooling for conversion.
+
+See [Chapter 7.7][implicit-conversion-to-raw-poiner-types] from Alexandrescu's
+Modern C++ Design for a discussion of why we often should be judicious in
+enabling implicit conversion to raw pointers from smart poiners.
+
+[implicit-conversion-to-raw-poiner-types]: https://www.informit.com/articles/article.aspx?p=31529&seqNum=7
 
 ## Circular dependency?
 Q: the above sketch seems to suggest that you need to provide a complete type `T` to `RefPtr<T>`.
