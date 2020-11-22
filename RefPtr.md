@@ -355,9 +355,14 @@ A local owner variable should not `AddRef()` before being returned as an owner.
 A member owner variable should `AddRef()` before being returned as an owner.
 
 # Conversion
-Our vision would be to remove all the annotation once we have sufficient information, and the end result looks like:
+Once every pointer becomes annotated as either `Pointer<T*>` or `Owner<T*>`, we'll have sufficient information about the intent.
+We can then convert the code mechanically:
 
 1. A human needs to inspect each unannotated pointer, and either manually annotate it, or come up with new base rules or new propagation rules
+
+1. each non-owning variable `pointer<T*> t` is replaced with a raw pointer
+   1. Assumption: `t` doesn't do `Release()` for managing lifetime
+   1. Assumption: All calls to `t->AddRef()` is passing a pointer to an owner argument at function call
 
 1. each owner variable `owner<T*> t` is replaced with a (hypothetically named) smart pointer `RefPtr<T> t`
    1. All references of `t->Release()` should be removed: this happens automatically when `t`
@@ -370,10 +375,9 @@ Our vision would be to remove all the annotation once we have sufficient informa
    1. Open questions: come up with rules that identify `std::move(t)` when we pass `t` to another owner.
       Obviously this has to be the last time we copy it (_use_ it actually: use-after-move is UB)
 
-1. each non-owning variable `pointer<T*> t` is replaced with a raw pointer
-   1. Assumption: `t` doesn't do `Release()` for managing lifetime
-   1. Assumption: All calls to `t->AddRef()` is passing a pointer to an owner argument at function call
-
+1. (TBD) special care is needed to convert various owning containers (e.g. `gpos::CDynamicPtrArray<T, gpos::CleanupRelease>`) so that:
+   1. The elements stored are of type `RefPtr<T>`
+   1. The container no longer manages the lifetype of the pointee any more than normal `construct` / `destroy` the `RefPtr` objects (not pointers)
 
 # Frequently Given Answers (FAQ)
 
