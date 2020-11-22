@@ -16,9 +16,6 @@ An _Owner_ is a piece of code (a block scope, a function, an object) that is res
 
 "Managing a pointee's lifetime" best manifests itself through through the owner calling `Release()`
 
-## Values
-A value refers to the "content" or meaning that occupies the address of an object. 42 is a value. The string `"hello world"` is a value.
-
 # Examples
 
 ## Example of a function taking ownership of one of its parameters:
