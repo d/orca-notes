@@ -415,6 +415,12 @@ private:
 };
 
 // helper analogous to std::allocate_shared
+// use this to mitigate problems in the following pattern:
+// T* t = GPOS_NEW(mp) T(mp, GPOS_NEW(mp) R(mp, ...), GPOS_NEW(mp) S(mp, ...))
+// do this instead:
+// RefPtr<T> t = allocate_ref<T>(mp, allocate_ref<R>(...), allocate_ref<S>(...))
+// Reference: GotW #56, GotW #102
+
 template <class T, class MP, class Args...>
 RefPtr<T> allocate_ref(MP mp, Args&&... args) { return {GPOS_NEW(mp) T(args...);} }
 ```
@@ -428,6 +434,10 @@ Both choices are negotiable, given that we can work on the tooling for conversio
 See [Chapter 7.7][implicit-conversion-to-raw-poiner-types] from Alexandrescu's
 Modern C++ Design for a discussion of why we often should be judicious in
 enabling implicit conversion to raw pointers from smart poiners.
+
+See GotW #102 and GotW #56 for the reason why we want to avoid the pattern of
+naked new expressions and use a helper like `gpos::allocate_ref` suggested at
+the bottom of the sketch
 
 [implicit-conversion-to-raw-poiner-types]: https://www.informit.com/articles/article.aspx?p=31529&seqNum=7
 
