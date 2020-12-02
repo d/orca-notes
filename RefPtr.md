@@ -429,17 +429,19 @@ Note in the sketch above:
 1. `RefPtr<T>` is implicitly convertible from `T*`.
 1. `RefPtr<T>` is not implicitly convertible to a `T*`.
 
-Both choices are negotiable, given that we can work on the tooling for conversion.
+The first choice is negotiable, given that we can work on the tooling for conversion.
 
 See [Chapter 7.7][implicit-conversion-to-raw-poiner-types] from Alexandrescu's
-Modern C++ Design for a discussion of why we often should be judicious in
-enabling implicit conversion to raw pointers from smart poiners.
+Modern C++ Design and [Herb Sutter's Reader Q&A][why-dont-smart-pointers] for a
+discussion of why we often should be judicious in enabling implicit conversion
+to raw pointers from smart poiners.
 
 See GotW #102 and GotW #56 for the reason why we want to avoid the pattern of
 naked new expressions and use a helper like `gpos::allocate_ref` suggested at
 the bottom of the sketch
 
 [implicit-conversion-to-raw-poiner-types]: https://www.informit.com/articles/article.aspx?p=31529&seqNum=7
+[why-dont-smart-pointers]: https://herbsutter.com/2012/06/21/reader-qa-why-dont-modern-smart-pointers-implicitly-convert-to/
 
 ## Circular dependency?
 Q: the above sketch seems to suggest that you need to provide a complete type `T` to `RefPtr<T>`.
