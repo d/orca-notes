@@ -379,6 +379,25 @@ We can then convert the code mechanically:
    1. The elements stored are of type `RefPtr<T>`
    1. The container no longer manages the lifetype of the pointee any more than normal `construct` / `destroy` the `RefPtr` objects (not pointers)
 
+
+# Observation on container touch poins
+
+## `CDynamicPtrArray`
+
+### Only used when `CleanupFn == gpos::CleanupNULL`:
+
+1. `AppendArray`
+
+1. `IndexOf`
+
+1. `IndexesOfSubsequence`
+
+1. `CreateReducedArray`
+
+### Not used with `CleanupRelease`
+
+1. `Find`
+
 # Frequently Given Answers (FAQ)
 
 ## Weak Pointers?
