@@ -93,7 +93,7 @@ struct S {
 }
 ```
 
-We have 486 occurrences of `Release()` called on a member variable from destructors in ORCA.
+We have 486 occurrences of `Release()` called on a field (non-static member variable) from destructors in ORCA.
 Often enough, ORCA also does a variant
 
 ```patch
@@ -269,8 +269,8 @@ pointer<T*> foo(T *parm1, U parm2) {
 
 We have 242 occurrences of functions returning a parameter in ORCA `.cpp` files (and a lot more in headers).
 
-## base.memOwnSafeRelease
-A non-static field (data member) of a struct (or class) that is released in its destructor is an owner. i.e. when we match:
+## base.fieldOwnSafeRelease
+A field (data member) of a struct (or class) that is released in its destructor is an owner. i.e. when we match:
 
 ```cpp
 struct S {
@@ -290,7 +290,7 @@ struct S {
 };
 ```
 
-We have 324 (`SafeRelease`d, or 486 for `Release`) such member variables in ORCA `.cpp` files.
+We have 324 (`SafeRelease`d, or 486 for `Release`) such fields in ORCA `.cpp` files.
 
 # Owner propagation
 Once we write out the annotation done in the base cases, we can further propagate the annotation.
@@ -351,8 +351,8 @@ Idea: identify the possible "move" and annotate that. Once we annotate all moves
 ## val.ownLocalRet
 A local owner variable should not `AddRef()` before being returned as an owner.
 
-## val.memRet
-A member owner variable should `AddRef()` before being returned as an owner.
+## val.fieldRet
+An owner field should `AddRef()` before being returned as an owner.
 
 # Conversion
 Once every pointer becomes annotated as either `Pointer<T*>` or `Owner<T*>`, we'll have sufficient information about the intent.
