@@ -11,6 +11,8 @@ but is never responsible for managing the lifetime of the pointee
 
 Pointers assume that the pointers they hold don't dangle (the pointees always outlive them).
 
+In some vocabulary this is also called an [observer](https://en.cppreference.com/w/cpp/experimental/observer_ptr).
+
 ## Owners
 An _Owner_ is a piece of code (a block scope, a function, an object) that is responsible for managing the lifetime of an object they reference through a pointer.
 
