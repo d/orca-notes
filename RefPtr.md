@@ -292,6 +292,12 @@ struct S {
 
 We have 324 (`SafeRelease`d, or 486 for `Release`) such fields in ORCA `.cpp` files.
 
+|   | gpopt | gporca | total
+---|---|---|---
+Release | 11 | 528 | 539
+SafeRelease | 2 | 339 | 341
+total | 13 | 867 | 880
+
 # Owner propagation
 Once we write out the annotation done in the base cases, we can further propagate the annotation.
 We don't know how far we can get with one iteration (because the derivation is iterative / recursive),
