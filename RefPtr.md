@@ -300,6 +300,33 @@ Release | 11 | 528 | 539
 SafeRelease | 2 | 339 | 341
 total | 13 | 867 | 880
 
+## base.fieldPtr
+A field that is never released in the destructor of its class is a pointer. i.e. when we match:
+
+```cpp
+struct S {
+  T* t_;
+  const T* ct_;
+
+  ~S() { // no releasing of t_ nor ct_ }
+};
+```
+
+We annotate:
+
+```cpp
+struct S {
+  pointer<T*> t_;
+  pointer<const T*> ct_;
+
+  ~S() { // no releasing of t_ nor ct_ }
+};
+```
+
+gpopt | gporca | total
+---|---|---
+2 | 128 | 130
+
 # Owner propagation
 Once we write out the annotation done in the base cases, we can further propagate the annotation.
 We don't know how far we can get with one iteration (because the derivation is iterative / recursive),
