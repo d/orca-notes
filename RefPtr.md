@@ -296,9 +296,9 @@ We have 324 (`SafeRelease`d, or 486 for `Release`) such fields in ORCA `.cpp` fi
 
 |   | gpopt | gporca | total
 ---|---|---|---
-Release | 11 | 528 | 539
-SafeRelease | 2 | 339 | 341
-total | 13 | 867 | 880
+Release | 11 | 537 | 548
+SafeRelease | 2 | 344 | 346
+total | 13 | 881 | 894
 
 ## base.fieldPtr
 A field that is never released in the destructor of its class is a pointer. i.e. when we match:
@@ -325,7 +325,7 @@ struct S {
 
 gpopt | gporca | total
 ---|---|---
-2 | 128 | 130
+7 | 165 | 172
 
 # Owner propagation
 Once we write out the annotation done in the base cases, we can further propagate the annotation.
