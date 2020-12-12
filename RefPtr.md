@@ -271,6 +271,28 @@ void PointsToParam(pointer<T*> t) {
 }
 ```
 
+## base.retOwnNew
+
+A function whose return value is a "new" expression returns ownership. i.e. when we match:
+
+```cpp
+T* foo() {
+  return new T;
+}
+```
+
+we annotate
+
+```cpp
+owner<T*> foo() {
+  return new T;
+}
+```
+
+gpopt | gporca | total
+---|---|---
+38 | 682 | 720
+
 ## base.retPtr
 This one is a little ORCA-specific: a function returning a parameter returns a pointer. i.e. when we match:
 
