@@ -244,8 +244,15 @@ Hint: parameters that are unconditionally released are taking unnecessary owners
 We can optimize them away in a second pass.
 We have about 12 such superfluous owners. Maybe a pre-factoring to eliminate them?
 
+gpopt | gporca | total
+---|---|---
+2|85|87
+
 ## base.parmPtr
-A function parameter that never has `Release` called on it is a pointer, i.e. we annotate it as
+
+**This is wrong**
+
+~~A function parameter that never has `Release` called on it is a pointer~~, i.e. we annotate it as
 
 ```cpp
 void PointsToParam(pointer<T*> t) {
