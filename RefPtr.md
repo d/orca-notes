@@ -191,6 +191,12 @@ owner<T*> t = new ...;
 
 We have 2288 such local variables.
 
+Tally of variables initalized with new (excluding the ones that are released)
+
+gpopt | gporca | total
+---|---|---
+249 | 1459 | 1708
+
 ## base.varOwnRelease
 A local variable that has `Release` member function called on it is an owner. i.e. when we match:
 
@@ -220,6 +226,12 @@ We have 1541 occurrences of such local variables in ORCA `.cpp` files.
 A local variable that has the static function `SafeRelease` called on it is an owner.
 
 We have 72 such local variables in ORCA `.cpp` files.
+
+Combined occurrences of local variables that are released:
+
+gpopt | gporca | total
+---|---|---
+118 | 1615 | 1733
 
 ## base.varPtr
 Questionable: A local variable that is returned right after an `AddRef()` is a pointer.
