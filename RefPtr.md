@@ -264,12 +264,22 @@ gpopt | gporca | total
 
 **This is wrong**
 
-~~A function parameter that never has `Release` called on it is a pointer~~, i.e. we annotate it as
+~~A function parameter that never has `Release` called on it is a pointer~~
+
+Insight: a function parameter that's never released can be either a pointer or an owner.
+
+If it's not a pointer, then its ownership must be transferred to another owner.
+
+For example:
 
 ```cpp
-void PointsToParam(pointer<T*> t) {
-}
+bool bar(owner<T*> t2);
+
+bool foo(T* t) { return bar(t); }
 ```
+
+Here we can infer that parameter `t` of `foo` is an owner: it's never released, but its only uses are as arguments to an owner parameter (without `AddRef()`).
+We should add a propagation rule for this.
 
 ## base.retOwnNew
 
@@ -292,25 +302,6 @@ owner<T*> foo() {
 gpopt | gporca | total
 ---|---|---
 38 | 682 | 720
-
-## base.retPtr
-This one is a little ORCA-specific: a function returning a parameter returns a pointer. i.e. when we match:
-
-```cpp
-T *foo(T *parm1, U parm2) {
-  return parm1;
-}
-```
-
-we annotate
-
-```cpp
-pointer<T*> foo(T *parm1, U parm2) {
-  return parm1;
-}
-```
-
-We have 242 occurrences of functions returning a parameter in ORCA `.cpp` files (and a lot more in headers).
 
 ## base.fieldOwnSafeRelease
 A field (data member) of a struct (or class) that is released in its destructor is an owner. i.e. when we match:
