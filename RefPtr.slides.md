@@ -14,21 +14,19 @@ slide: https://hackmd.io/@j-/rJ8v-AVAD#/
 ### Before:
 
 ```cpp
-    struct T : gpos::CRefCount<T> {};
-    using U = T;
-    struct S : T {};
+struct U : CRefCount<T> {};
 
-    U *F();
+U *F();
 
-    U *foo(int i, bool b, S *param) {
-      U *u = F();
-      if (i < 42) {
-        u->AddRef();
-        return u;
-      }
-      param->AddRef();
-      return param;
-    }
+U *foo(int i, bool b, U *param) {
+  U *u = F();
+  if (i < 42) {
+    u->AddRef();
+    return u;
+  }
+  param->AddRef();
+  return param;
+}
 
 ```
 
@@ -37,21 +35,19 @@ slide: https://hackmd.io/@j-/rJ8v-AVAD#/
 ### After
 
 ```cpp
-    struct T : gpos::CRefCount<T> {};
-    using U = T;
-    struct S : T {};
+struct U : CRefCount<T> {};
 
-    U *F();
+U *F();
 
-    U *foo(int i, bool b, gpos::pointer<S *> param) {
-      gpos::pointer<U *> u = F();
-      if (i < 42) {
-        u->AddRef();
-        return u;
-      }
-      param->AddRef();
-      return param;
-    }
+U *foo(int i, bool b, pointer<U *> param) {
+  pointer<U *> u = F();
+  if (i < 42) {
+    u->AddRef();
+    return u;
+  }
+  param->AddRef();
+  return param;
+}
 ```
 
 ---
@@ -59,21 +55,21 @@ slide: https://hackmd.io/@j-/rJ8v-AVAD#/
 ### Before:
 
 ```cpp
-    struct T : gpos::CRefCount<T> {};
-    using U = T;
-    struct S : T {};
+struct T : CRefCount<T> {};
+using U = T;
+struct S : T {};
 
-    U *F();
+U *F();
 
-    U *foo(int i, bool b, S *param) {
-      U *u = F();
-      if (i < 42) {
-        u->AddRef();
-        return u;
-      }
-      param->AddRef();
-      return param;
-    }
+U *foo(int i, bool b, S *param) {
+  U *u = F();
+  if (i < 42) {
+    u->AddRef();
+    return u;
+  }
+  param->AddRef();
+  return param;
+}
 
 ```
 
@@ -82,19 +78,19 @@ slide: https://hackmd.io/@j-/rJ8v-AVAD#/
 ### After
 
 ```cpp
-    struct T : gpos::CRefCount<T> {};
-    using U = T;
-    struct S : T {};
+struct T : CRefCount<T> {};
+using U = T;
+struct S : T {};
 
-    U *F();
+U *F();
 
-    Ref<U*> foo(int i, bool b, S * param) {
-      U * u = F();
-      if (i < 42) {
-        return u;
-      }
-      return param;
-    }
+Ref<U *> foo(int i, bool b, S *param) {
+  U *u = F();
+  if (i < 42) {
+    return u;
+  }
+  return param;
+}
 ```
 
 

@@ -402,6 +402,39 @@ owner<T*> g();
 
 I hesitated to generalize the above rule as "a function returning an owner expression, well, returns an owner" because I wasn't sure about parameters. Fortunately ORCA never returns a parameter that has been `Release()`d.
 
+## prop.vfun
+If a virtual function returns an owner, then *all* functions it overrides returns an owner. i.e. when we match
+
+```cpp
+struct T {};
+
+struct S {
+virtual T* foo();
+};
+
+struct R : S {
+owner<T*> foo() override;
+}
+```
+
+We annotate
+
+```cpp
+struct T {};
+
+struct S {
+virtual owner<T*> foo();
+};
+
+struct R : S {
+owner<T*> foo() override;
+}
+```
+
+Conversely, if the "super" function `f` returns an owner, then any override of `f` returns an owner.
+
+Likewise, every function in the override set of a virtual function returns a pointer if one of them returns a pointer.
+
 # Call site cross-examination
 Once the propagation converges to a stationary point, we should validate some of our assumptions.
 
