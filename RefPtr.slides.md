@@ -527,7 +527,7 @@ bool bar(owner<T*> t, int x) {
 ----
 
 
-<table style="margin: 0 -10% 0 -10%; width: 120%">
+<table style="margin: 0 -10% 0 -10%; width: 120%;">
 <tr>
 <td>
 Given
@@ -535,9 +535,14 @@ Given
 <td>
 CFG
 </td>
-</tr>
-<tr>
 <td>
+
+Simp. for `t`
+
+</td>
+</tr>
+<tr style="vertical-align: top; ">
+<td style="width: 40%">
 
 ```cpp
 bool F(gpos::owner<T*>);
@@ -552,24 +557,47 @@ bool bar(T* t, int x) {
 ```
 
 </td>
-<td>
+<td style="font-size: 60%;">
 
-* B0 (EXIT) Preds: [1,2]
+```
+[B0 (EXIT)]
+  Preds: [1,2]
 
-* B1 Succs: 0 Preds: 3
+[B1]
+  1: `return x < 42`
+  Succs: 0
+  Preds: 3
 
-  1. `return x < 42`
+[B2]
+  1: `return x > 420`
+  Succs: 0
+  Preds: 3
 
-* B2 Succs: 0 Preds: 3
+[B3]
+  1: F(t)
+  Terminal: if [B3.1]
+  Succs: [1,2]
+  Preds: 4
 
-  1. `return x > 420`
+[B4 (ENTRY)] Succs: 3
+```
 
-* B3 Succs: [1,2] Preds: 4
+</td>
 
-  1. F(t)
-  1. Terminal: if (F(t))
+<td style="font-size: 60%;">
 
-* B4 (ENTRY) Succs: 3
+```
+[B0 (EXIT)]
+  Preds: [1,2]
+
+[B3]
+  1: F(t)
+  Terminal: if [B3.1]
+  Succs: [0,0]
+  Preds: 4
+
+[B4 (ENTRY)] Succs: 3
+```
 
 </td>
 </tr>
